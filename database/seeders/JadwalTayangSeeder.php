@@ -28,7 +28,7 @@ class JadwalTayangSeeder extends Seeder
                 'studio_id' => $studioId,
                 'tanggal' => now()->toDateString(),
                 'jam' => $jamTayang[array_rand($jamTayang)],
-                'jumlah_tiket' => Studio::find($studioId)->kapasitas, // Jumlah tiket = kapasitas studio
+                'jumlah_tiket' => 100,
             ]);
         }
         
@@ -39,7 +39,7 @@ class JadwalTayangSeeder extends Seeder
                 'studio_id' => $studioId,
                 'tanggal' => now()->addDay()->toDateString(),
                 'jam' => $jamTayang[array_rand($jamTayang)],
-                'jumlah_tiket' => Studio::find($studioId)->kapasitas, // Jumlah tiket = kapasitas studio
+                'jumlah_tiket' => 100,
             ]);
         }
     }

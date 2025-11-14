@@ -15,7 +15,7 @@
                     </div>
                 @endif
 
-                <button wire:click="create()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4">Tambah Film Baru</button>
+                <button wire:click="create()" dusk="create-film" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4">Tambah Film Baru</button>
 
                 @if($isModalOpen)
                     @include('livewire.film-form')
