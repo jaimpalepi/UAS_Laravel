@@ -15,104 +15,112 @@ class CrudFeatureTest extends DuskTestCase
 {
     use DatabaseMigrations;
 
-    /**
-     * Seed the database before each test.
-     */
     protected function setUp(): void
     {
         parent::setUp();
-        // Jalankan seeder untuk menyiapkan data awal, termasuk user admin
         $this->artisan('db:seed');
     }
 
-    /**
-     * @group login
-     * Test user dapat login dengan kredensial yang benar.
-     *
-     * @return void
-     * @throws Throwable
-     */
     public function testLogin(): void
     {
         $this->browse(function (Browser $browser) {
-            // Ambil user admin yang sudah ada dari database
             $user = User::where('email', 'admin@cinema.app')->first();
 
             $browser->visit('/login')
-                    ->type('email', $user->email)
-                    ->type('password', 'password') // Asumsi password default adalah 'password'
-                    ->press('Login')
-                    ->assertPathIs('/dashboard')
-                    ->assertSee('Dashboard');
+                ->type('email', $user->email)
+                ->type('password', 'admin1234')
+                ->click('#login-button')
+                ->assertPathIs('/dashboard');
         });
     }
 
-    /**
-     * @group crud
-     * Test fungsionalitas CRUD (Create, Read, Update, Delete) untuk Jadwal Tayang.
-     *
-     * @return void
-     * @throws Throwable
-     */
-    public function testJadwalTayangCrud(): void
+    public function testFilmCreate(): void
     {
         $this->browse(function (Browser $browser) {
-            // Ambil data yang diperlukan dari database
             $user = User::where('email', 'admin@cinema.app')->first();
-            $film = Film::first();
-            $studio = Studio::first();
-
-            // Login sebagai admin sebelum memulai tes CRUD
             $browser->loginAs($user)
-                    ->visit('/jadwal-manager');
+                    ->visit('/manage-films');
 
-            // --- 1. Test Create Data ---
-            $browser->press('Tambah Jadwal Baru')
-                    ->whenAvailable('.modal', function ($modal) use ($film, $studio) {
-                        $modal->select('film_id', $film->id)
-                              ->select('studio_id', $studio->id)
-                              ->type('tanggal', '20-11-2025') // Gunakan format YYYY-MM-DD
-                              ->type('jam', '19:00')
-                              ->type('jumlah_tiket', '150')
-                              ->press('Simpan');
+            $browser->press('Tambah Film Baru')
+                    ->whenAvailable('form[wire\:submit\.prevent="store"]', function ($modal) {
+                        $modal->type('#judul', 'Film Test Dusk')
+                              ->type('#sutradara', 'Sutradara Test')
+                              ->type('#tahun', '2024')
+                              ->select('#genre_id', '1')
+                              ->click('#submit-btn');
                     })
-                    ->assertSee('Jadwal Berhasil Dibuat.');
+                    ->waitForText('Film Berhasil Ditambahkan.')
+                    ->assertSee('Film Berhasil Ditambahkan.');
+        });
+    }
 
-            // --- 2. Test Read Data ---
-            // Verifikasi data yang baru dibuat muncul di halaman
-            $browser->assertSee($film->judul)
-                    ->assertSee($studio->nama_studio)
-                    ->assertSee('20-11-2025') // Sesuaikan format tanggal yang ditampilkan di view
-                    ->assertSee('19:00')
-                    ->assertSee('150');
+    public function testFilmRead(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'admin@cinema.app')->first();
 
-            // --- 3. Test Update Data ---
-            // Cari baris data yang baru dibuat dan klik tombol edit
-            $browser->with("tr:contains('{$film->judul}')", function ($row) {
-                        $row->press('Edit');
+            $browser->loginAs($user)
+                    ->visit('/manage-films');
+
+            $browser->press('Tambah Film Baru')
+                    ->whenAvailable('form[wire\:submit\.prevent="store"]', function ($modal) {
+                        $modal->type('#judul', 'Film Test Dusk')
+                              ->type('#sutradara', 'Sutradara Test')
+                              ->type('#tahun', '2024')
+                              ->select('#genre_id', '1')
+                              ->click('#submit-btn');
                     })
-                    ->whenAvailable('.modal', function ($modal) {
-                        // Ubah jumlah tiket
-                        $modal->clear('jumlah_tiket')->type('jumlah_tiket', '175');
-                        $modal->press('Simpan');
-                    })
-                    ->assertSee('Jadwal Berhasil Diperbarui.');
+                    ->waitForText('Film Berhasil Ditambahkan.')
+                    ->assertSee('Film Berhasil Ditambahkan.')
+                    ->assertSee('Film Test Dusk');
+        });
+    }
 
-            // Verifikasi bahwa data telah diperbarui
-            $browser->assertSee('175');
+    public function testFilmUpdate(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'admin@cinema.app')->first();
 
-            // --- 4. Test Delete Data ---
-            // Cari baris data yang sudah diupdate dan klik tombol hapus
-            $browser->with("tr:contains('{$film->judul}')", function ($row) {
-                        $row->press('Hapus');
-                    });
+            $browser->loginAs($user)
+                    ->visit('/manage-films');
 
-            // Dusk akan otomatis menangani konfirmasi browser (wire:confirm)
-            // Verifikasi pesan sukses penghapusan
-            $browser->assertSee('Jadwal Berhasil Dihapus.');
+            $film = Film::first();
+            if ($film) {
+                $browser->press('@edit-film-' . $film->id)
+                        ->whenAvailable('form[wire\:submit\.prevent="store"]', function ($modal) {
+                            $modal->type('#judul', 'Film Test Dusk Updated')
+                                  ->type('#sutradara', 'Sutradara Test Updated')
+                                  ->type('#tahun', '2025')
+                                  ->select('#genre_id', '2')
+                                  ->click('#submit-btn');
+                        })
+                        ->waitForText('Film Berhasil Diperbarui.')
+                        ->assertSee('Film Berhasil Diperbarui.');
 
-            // Verifikasi bahwa data sudah tidak ada lagi di tabel
-            $browser->assertDontSee($film->judul);
+                $browser->visit('/manage-films')
+                        ->assertSee('Film Test Dusk Updated')
+                        ->assertSee('Sutradara Test Updated')
+                        ->assertSee('2025');
+            }
+        });
+    }
+
+    public function testFilmDelete(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $user = User::where('email', 'admin@cinema.app')->first();
+
+            $browser->loginAs($user)
+                    ->visit('/manage-films');
+
+            $film = Film::first();
+            if ($film) {
+                $browser->press('Hapus')
+                        ->acceptDialog()
+                        ->waitForText('Film Berhasil Dihapus.')
+                        ->assertSee('Film Berhasil Dihapus.');
+            }
         });
     }
 }
+

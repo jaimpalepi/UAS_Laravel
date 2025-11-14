@@ -44,7 +44,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $film->tahun }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $film->genre->nama_genre }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button wire:click="edit({{ $film->id }})" class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                                        <button wire:click="edit({{ $film->id }})" dusk="edit-film-{{ $film->id }}" class="text-indigo-600 hover:text-indigo-900">Edit</button>
                                         <button wire:click="delete({{ $film->id }})" wire:confirm="Anda yakin ingin menghapus film ini?" class="text-red-600 hover:text-red-900 ml-4">Hapus</button>
                                     </td>
                                 </tr>
